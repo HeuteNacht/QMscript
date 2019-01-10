@@ -1,0 +1,81 @@
+Root_URL = "D:\HeuteNacht\anjian\"
+
+//Msgbox "start"
+Call myFile_Read(Root_URL &"Open_Shadowverse.txt")
+Msgbox "Complete!"
+
+
+//获取目录下：文件名 complete
+Function myFile_Read(URL)
+	Dim myarray, i, Text
+	//Msgbox "start"
+	FileExist=Plugin.File.IsFileExist(URL)
+	If FileExist Then
+		f = Plugin.File.OpenFile(URL)
+		//Msgbox "opened"
+		Text = "T"
+		i = 0
+		While Text<>""
+			Text = Plugin.File.ReadLine(f)
+			//Msgbox "text"&i&"="&Text
+			//Text2=Plugin.File.ReadFile(f)
+			Call Code_Exe(Text)
+    		//Msgbox "text"&i&"="&Text// & "text2="& Text2
+    		i = i + 1
+		Wend
+		Plugin.File.CloseFile f
+	End If
+//Msgbox "Complete!"
+End Function
+
+
+
+Function Code_Exe(codes)
+	Dim Code_Array, Code_Len
+	Dim code, x, y, time_delay
+	
+	code="None"		//code default is "None"
+	Code_Array = split(codes,",")
+	//Msgbox "Codes="&codes
+	Code_Len = UBound(Code_Array)
+	
+	If (Code_Len = 3) Then //if codes have exactly three parall;Tips:"="表示等于和赋值
+		code = Code_Array(2)//code setting in 3th position e.g x,y,code
+		//Msgbox "Code="&Code_Array(2)
+		x = Code_Array(0)
+		y = Code_Array(1)
+		time_delay = Code_Array(3)
+	End If
+	
+	Select Case code
+		Case "D", "d"
+			Call myDouble_Click(x, y, time_delay)
+		Case "C", "c"
+			Call myLeft_Click(x, y, time_delay)
+		Case "R", "r"
+			Call myRight_Click(x, y, time_delay)
+		Case Else
+			//Msgbox "Undefined Codes"
+	End Select
+	
+End Function
+
+Function myDouble_Click(x, y,Time)
+	MoveTo x,y
+	LeftDoubleClick 1
+	Delay Time
+End Function
+
+Function myRight_Click(x, y,Time)
+	MoveTo x,y
+	RightClick 1
+	Delay Time
+End Function
+
+Function myLeft_Click(x, y,Time)
+	MoveTo x,y
+	LeftClick 1
+	Delay Time
+End Function
+
+
