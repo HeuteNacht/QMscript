@@ -1,0 +1,1513 @@
+/*
+-----------------------------------   Global Var   --------------------------------------------------
+*/
+Global PATH
+Global dm_PATH
+Global PATH_PIC
+Global START	'label dm.dll is runing
+Global SAW
+Global HANDLE
+Global Script_Name
+Global LAST_POST_NUM
+Global THIS_POST_NUM
+Global FINDPIC_SIM
+Global SPIRIT_NORMAL
+Global SPIRIT_AI
+Global SPIRIT_IGAI
+Global FINDPIC_TIMES
+dm_PATH="D:\HeuteNacht\anjian\damo\"
+PATH = "D:\HeuteNacht\anjian\"
+PATH_PIC = "D:\HeuteNacht\anjian\damo\Pic\"
+START = 0
+SAW = ""
+HANDLE = 0
+LAST_POST_NUM = 0		'SUM OF PAST	
+THIS_POST_NUM = 0	'THIS TIME
+SPIRIT_NORMAL = 32
+SPIRIT_AI = 32
+SPIRIT_IGAI = 32
+FINDPIC_SIM = 0.9
+FINDPIC_TIMES = 100
+
+
+Script_Name="Shadowverse"
+
+Dim Conf                   '创建：Conf属性字典  *注意：字典不能声明为全局变量*
+Set Conf  = CreateObject("Scripting.Dictionary")
+Conf.Add "PATH", "D:\HeuteNacht\anjian\"    '添加键和项目
+Conf.Add "PATH_Conf_URL", "D:\HeuteNacht\anjian\Conf.txt"  
+//MsgBox "Conf=" & Conf("PATH")
+
+Dim Script_Dict                   '创建：属性字典
+Set Script_Dict = CreateObject("Scripting.Dictionary")
+Script_Dict.Add "choice_wide", "50"    '添加键和项目
+
+/*
+---------------------------Main Function--------------------------------------------------------------
+######################################################################################################
+*/
+
+Call Set_CONF
+//MsgBox "Script_Name="&Script_Name
+//for test
+//Call Folder_Read("D:\HeuteNacht\anjian\damo\Pic\FGO_Pic09")
+/*
+For i = 0 To 3
+	strings = mySplitEx("a,b,c,d", ",", "F", i)
+	MsgBox "First strings=" & strings
+	strings = mySplitEx("a,b,c,d", ",", "B", i)
+	MsgBox "Back strings=" & strings
+	strings = mySplitEx("a,b,c,d", ",", "G", i)
+	MsgBox "Get strings="&strings
+Next
+strings = mySplitEx("a,b,c,d", ",", "I", "C,D,E,F,G")
+MsgBox "Insert strings=" & strings
+strings = mySplitEx("1151,48,FindPicEx,FGO_Pic29.bmp,DM,1178,76,意外事件F", ",", "IIXIXII", "1151,48,FindPicEx,FGO_Pic29.bmp,DM,1178,76,意外事件F")
+MsgBox "插入=" & strings
+codeline="443|445,331|329,FindPicEx_OR,FGO_Pic19.bmp|FGO_Pic1900.bmp,DM,506|487,354|349,确认已经有密码OR空白密码"
+Call Code_Insert(codeline, "FGO_IGAI")
+MsgBox "Test Complete"
+*/
+
+Call Script_Executor(Script_Name)
+//Msgbox "Complete!"
+
+
+
+/*
+######################################################################################################
+---------------------------------------------- Set CONF ----------------------------------------------
+*/
+Function Set_CONF
+'claim:
+	Dim Read_Text, Codes, Text
+'initial:
+'core:
+	Read_Text = File_Read("Conf")
+	//MsgBox "read ="&Read_Text
+	Codes = split(Read_Text, "@")
+	For i = 0 To UBound(Codes)
+		Text = split(Codes(i), "=")
+		Select Case Text(0)
+			Case "Script_Name"
+				Script_Name = Text(1)
+			Case "LAST_POST_NUM"
+				LAST_POST_NUM = Text(1)
+				
+		End Select
+	Next
+'return:
+End Function
+
+Function Rewrite_CONF
+'claim:
+	Dim String_Data
+'initial:
+'core:
+	String_Data = "Script_Name=" & Script_Name & Chr(13) & Chr(10)
+	sum = LAST_POST_NUM + THIS_POST_NUM
+	String_Data = String_Data & "LAST_POST_NUM =" & sum
+	Call File_SaveEx("Conf", String_Data, "Rewrite")
+'return:
+Rewrite_CONF="RewriteConf"
+End Function
+/*
+-------------------------------------------- Script_ExecutorII  ------------------------------------------
+			AI >> 
+__________________________________________________________________________________________________________
+*/
+Function Script_ExecutorII(File_Name)
+'claim:
+	Dim Read_Text, Codes
+	Dim i, Err_Code, GoAhead
+	Dim Sprit_Value
+'initial:
+	Read_Text = File_ReadEx(File_Name)
+	Codes = split(Read_Text, "@")
+	i = 0
+	Sprit_Value = 0	' AI标记代码重复运行次数,防止死循环
+'core:	
+	While (i < UBound(Codes) + 1)
+	/*
+		test = Codes_Select(Codes, "F")
+		MsgBox "test=" & test
+	*/
+		Err_Code = Code_Exe(Codes(i))
+		//MessageBox Codes(i)&">>Err_Code="&Err_Code
+		GoAhead = AI_WhereIsII(Codes, i, Err_Code, Sprit_Value)
+		If (GoAhead = 0) Then 				'如果不前进=重复次数
+			Sprit_Value = Sprit_Value + 1
+		Else 
+			Sprit_Value = 0					'前进一次清零
+		End If
+		If (GoAhead <> 999) Then 
+			i = i + GoAhead
+		Else 
+			//MsgBox "Alle is Begin von nul?"
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ Alle is Begin von nul   ]", "9400D3")
+			Delay 3000
+			//MsgBox "冷静一下"
+			Delay 5000
+			Sprit_Value = 0					'恢复理智
+		End If
+		
+	Wend
+'return:
+	Script_ExecutorII = "Script"
+End Function
+/*
+---------------------------------------------- AI_WhereIsII ----------------------------------------------
+*/
+Function Script_Executor(File_Name)
+'claim:
+	Dim Read_Text, Codes
+	Dim i, Err_Code, GoAhead
+	Dim Sprit_Value
+'initial:
+	Read_Text = File_ReadEx(File_Name)
+	Codes = split(Read_Text, "@")
+	i = 0
+	Sprit_Value = 0	' AI标记代码重复运行次数,防止死循环
+'core:	
+	While (i < UBound(Codes) + 1)
+		Err_Code = Code_Exe(Codes(i))
+		i = i + 1
+	Wend
+'return:
+	Script_Executor = "Script"
+End Function
+
+/*
+---------------------------------------------- AI_WhereIsII ----------------------------------------------
+*/
+Function AI_WhereIsII(Codes, Line, Err_String, Sprit_Value)	'|Codes字符串数组
+'claim:											'|Line表示执行到第几行,或者标记谁在递归！！！
+	Dim last_Code, i, next_Code			'|Line 为数字时,表示来自主程序或递归使用
+	Dim pos, Still, GoAhead 					'|Line 为特定字符串时,说明来自自身AI递归:Dangerous!!!
+	Dim Err_Array, AI_Action
+	Dim Inserted_Code
+	Dim Execute_Way
+	Dim Err_Code
+	Dim myArray
+'initial:
+	GoAhead = 0
+	i = 0	
+	Err_Array = split(Err_String, "|")
+	Err_Main = Err_Array(0)
+	Err_Next = Err_Array(1)
+	Err_Message = Err_Array(2)
+'core:
+	Select Case Err_Main
+		Case "NoFound" 								
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ Turing Testing>> SP:" & Split_Value & "|Err:"&Err_String&"|Line:"&Line& "|GB:"& GoBack&"  ]", "9400D3")
+			GoAhead = 0									'默认出来为0
+		'AI逻辑模块:找图有关
+			Select Case Line							'防止死循环的AI逻辑模块
+				Case "FindAll", "Find_All", "findall"	'判断已经在AI递归内,自动跳过
+					Goto AI_WhereIsII_FindAll_Model
+				Case Else								'其他:表示数字或者即将进入>>其他维定义的AI模块
+					Goto AI_WhereIsII_Search			'跳转到:世界尽头>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+			End Select
+		'Model:FindAll
+		  Rem AI_WhereIsII_FindAll_Model				'超级赛亚人的二段爆发！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
+		  	If (Sprit_Value > SPIRIT_IGAI) Then 
+		  		GoAhead = 999				'发疯了
+		  		//MsgBox "AI is Range!!!!!"
+		  		
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ AI is Range   ]", "9400D3")
+			Delay 2000
+		  		Read_Text = File_ReadEx("FGO_IGAI")		'读取真经......................................................
+				Codes_IGAI = split(Read_Text, "@")
+				Execute_Way = Codes_Select(Codes_IGAI, "FindPic")			'AI找图代码读入
+			'	Execute_Way_Action = Codes_Select(Codes_IGAI, "FindPic")	'动作代码读入
+				Err_Code = Code_ExeEx(Codes, Execute_Way, "IGAI")			'IGAI 模式:找32次找不到就返回"None"
+				If (Err_Code = "None") Then 
+					//MsgBox "Nofound"
+					
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ AI >>NoFound   ]", "9400D3")
+					GoAhead = "999"											'999:标记IGAI也找不到
+					Goto AI_WhereIsII_Search_End
+				Else 
+					myArray = split(Err_Code, ",")
+					If (UBound(myArray) = 0) Then 		'Find one ,Great!
+						//MsgBox "Definitely!!!AI know where am I>>IGAI:" & myArray(0)
+						
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ Alle Know Where You Are>>in"&myArray(0)&">>Action ]", "9400D3")
+						Delay 2000
+						'AI ACTION
+						Err_Code = Code_Exe(int(myArray(0))+1)		'默认IGI文件为F-A F-A 模式,动作在下一行
+						GoAhead = AI_WhereIsII(Codes, i, Err_Code, Sprit_Value)	'动作完毕
+						GoAhead = 0												'回到原来命令行:
+						Goto AI_WhereIsII_Search_End	'AI >>skip out of insane loops<<
+					Else 								'Find one more 
+						//MsgBox "AI Find:You are Now in IGAIs:" & Err_Code&"many positon?"
+						//MsgBox "AI was Confuse!!!"
+						
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ AI might be Confuse   ]", "9400D3")
+						Delay 3000
+						pos1 = 0
+						pos2 = 0
+	'Default:默认执行第一条IGAI指令...........................................  待添加随机函数  ......................................................
+							'AI ACTION: Try Radoms One
+							Err_Code = Code_Exe(int(myArray(0))+1)		'默认IGI文件为F-A F-A 模式,动作在下一行
+							GoAhead = AI_WhereIsII(Codes, i, Err_Code, Sprit_Value)	'动作完毕
+							GoAhead = 0												'回到原来命令行:
+						Goto AI_WhereIsII_Search_End	'AI >>skip out of insane loops<<
+					End If
+				End If
+		  	End If
+		  	Goto AI_WhereIsII_Search_End
+		  	
+		'Model:AI智能实现方式:
+		  Rem AI_WhereIsII_Search	
+			If (Sprit_Value > SPIRIT_AI) Then 			'当精神值触发AI时
+				Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ Turing Testing>> I am Awake!!!!!!!]" & GoBack, "9400D3")
+				Delay 2000
+				//MsgBox "start?"
+				Execute_Way = Codes_Select(Codes, "FindPic")
+				Err_Code = Code_ExeEx(Codes, Execute_Way, "FindAll")
+				If (Err_Code = "None") Then 
+					
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ AI NoFound Fist Time   ]", "9400D3")
+					//MsgBox "Nofound"
+				Else 
+					myArray = split(Err_Code, ",")
+					If (UBound(myArray) = 0) Then 		'Find one ,Great!
+						Delay 2000
+						//MsgBox "Definitely!!!I know I am in>>" & myArray(0)
+						If (int(Line) > int(myArray(0))) Then 
+							GoAhead = int(Line) - int(myArray(0))
+						Else 
+							GoAhead = int(myArray(0)) - int(Line)
+							//MsgBox "GoAhead ="&GoAhead 
+						End If
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ AI Found:GoAhead= " & GoAhead & "  ]", "9400D3")
+						Delay 2000
+						Goto AI_WhereIsII_Search_End	'skip out of insane loops<<
+					Else 								'Find one more 
+						//MsgBox "Find:You are Now in:" & Err_Code&"many positon?"
+						//MsgBox "I was Confuse!!!"
+						pos1 = 0
+						pos2 = 0
+						For i = 0 To UBound(myArray)
+						If (i > 0) Then 																'从1开始
+							If (int(myArray(i)) > int(Line))and(int(myArray(i-1)) < int(Line)) Then 	'如果夹逼成功 2,Line,9
+								pos1 = int(myArray(i - 1))
+								pos2 = int(myArray(i))
+							Else 
+								If (int(myArray(0)) > int(Line)) Then 									'如果夹逼失败Line必定在两头
+									//MsgBox "Cause Find the Min Biger Than Line so go to Firstone:>>" & myArray(0)'左侧								' 
+									GoAhead = int(myArray(0)) - int(Line)
+								Else 																	'不然右侧
+									//MsgBox "Cause You Are Bigest one to Lastone:>>" & myArray(UBound(myArray))							' 
+									GoAhead = int(Line) - int(myArray(0))
+								End If
+							End If	
+						End If
+						Next
+		Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ AI First Confuse at GoAhead="&GoAhead&"? ]", "9400D3")
+						Delay 3000
+						Goto AI_WhereIsII_Search_End	'skip out of insane loops<<
+					End If
+				End If
+			End If
+		  Rem AI_WhereIsII_Search_End
+			
+		Case "Found"
+			Select Case Err_Next
+				Case "Pics"
+					GoAhead = 1
+				Case "Pic"
+					GoAhead = 1
+				Case "Dynamic"
+					GoAhead = 1
+				Case "OR"
+					//MessageBox "Find the pic skip>>"&Err_Message&"Step"
+					GoAhead = int(Err_Message) + 1
+				Case Else
+					GoAhead = 1
+			End Select
+		Case "L"
+			GoAhead = 1
+		Case "D"
+			GoAhead = 1
+		Case "R"
+			GoAhead = 1
+		Case "P","Post"
+			GoAhead = 1
+		Case Else
+			GoAhead = 1
+	End Select
+			
+	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ Turing Testing>> GoAhead="&GoAhead&"  ]" & GoBack, "0000FF")
+	AI_WhereIsII = GoAhead 
+End Function
+/*
+----------------------------------------- AI: Code_Insert  ------------------------------------------------------
+Insert File should have a Form F-A F-A F-A   FindPic -- Action
+-----------------------------------------------------------------------------------------------------------------
+*/
+Function Code_Insert(codeline, File_Name)
+'claim:
+	Dim Read_Text, Codes, Len, Insert_Num
+	Dim i, Err_Code, GoAhead
+	Dim FindPic_Code(100), Action_Code(100)
+	Dim Inserted_Code
+'initial:
+	Read_Text = File_ReadEx(File_Name)
+	//MsgBox "Read_Text="&Read_Text
+	Codes = split(Read_Text, "@")
+	Len = UBound(Codes) + 1
+	Insert_Num = int(Len / 2)
+	//MsgBox "Insert_Num="&Insert_Num
+	i = 0
+'core:
+	For i = 0 To Insert_Num - 1
+		FindPic_Code(i) = Codes(i * 2)
+		//MsgBox "FindPic_Code(i) = "&FindPic_Code(i)
+		'Action_Code(i) = Codes(i * 2 + 1)
+		codeline = mySplitEx(codeline, ",", "IIXIXII", FindPic_Code(i))
+	Next
+'Return:
+	Code_Insert = codeline
+	//MsgBox "Code_Insert="&codeline
+End Function
+/*
+----------------------------------------- AI: Code_Select  ------------------------------------------------------
+Code_Select Return: pos_string="2,3,5,7,8,20" 表示选定代码类型位置分别为 2,3,5,7,8,20
+-----------------------------------------------------------------------------------------------------------------
+*/
+Function Codes_Select(Codes, Model)		'Codes=split(Read_Text,"@") 属于字符数组|eg.Codes(i)="12,12,C,1234,DM"
+'claim:
+	Dim codeline						'codeline=split(Codes(i),",")
+	Dim Tp	'搜索指针
+	Dim pos	'搜到的位置
+	Dim sum	'计数器
+	Dim Err
+'initial:
+	i = 0
+	sum = 0
+	Tp = ""
+'Trans:
+	Select Case Model
+		Case "FindPic", "FindPicEx", "FindPicEx_OR","F"
+			Tp = "FindPic"
+			Goto Codes_Select_FindPic_Model
+		Case "Action", "Else"
+			Tp = "FindPic"
+			Goto Codes_Select_Action_Model
+	End Select
+'Model:FindPic
+Rem Codes_Select_FindPic_Model
+	Text = ""
+	sum = 0
+	For i = 0 To UBound(Codes)
+		If (Codes(i) <> "") Then 
+			pos = InStr(Codes(i), Tp)
+			If (pos ="Null") Then 
+				//MsgBox "Err:Codes(i) is Unknow"
+			ElseIf (pos = 0) Then
+				'NoFound
+			ElseIf (pos > 0) Then
+				If (sum = 0) Then 
+					Text = i
+				Else 
+					Text = Text & "," & i
+				End If
+				sum = sum + 1
+			Else 
+				//MsgBox "Err:InStrFunction is Wrong?"
+			End If
+		End If	
+	Next
+	Err = Text
+	Goto Codes_Select_Return
+'Model:Action
+Rem Codes_Select_Action_Model
+	Text = ""
+	sum = 0
+	For i = 0 To UBound(Codes)
+		If (Codes(i) <> "") Then 
+			pos = InStr(Codes(i), Tp)
+			pos1 = InStr(Codes(i), ",")
+			If (pos ="Null") Then 
+			//	MsgBox "Err:Codes(i) is Unknow"
+			ElseIf (pos = 0) Then
+				'NoFound
+				If (pos1 > 0) Then 	'找逗号,确认代码不空,双保险
+					If (sum = 0) Then 
+					Text = i
+				Else 
+					Text = Text & "," & i
+				End If
+				sum = sum + 1
+				End If
+				
+			ElseIf (pos > 0) Then
+			/*
+			//Found
+				If (sum = 0) Then 
+					Text = i
+				Else 
+					Text = Text & "," & i
+				End If
+				sum = sum + 1
+			*/
+			Else 
+				//MsgBox "Err:InStrFunction is Wrong?"
+			End If
+		End If	
+	Next
+	Err = Text
+	Goto Codes_Select_Return
+'Return:
+Rem Codes_Select_Return
+	Codes_Select = Err
+End Function
+/*
+------------------------------------------------------------------------------------------------------------------
+                Code_ExeEx(Codes,Model): 多功能代码块执行器
+------------------------------------------------------------------------------------------------------------------
+*/
+Function Code_ExeEx(Codes, Execute_Way, Model)	'|Execute_Way="2,3,5,6,7"表示需要执行的几行代码
+	Dim Err										'|Model="FindAll":表示尝试执行所有以上代码,返回有执行结果的行 
+	Dim myArray									'|eg.5,7表示5和7行有结果
+	Dim Err_Code
+	Dim sum
+	Dim GoAhead
+	Dim Sprit_Value
+'initial
+	sum = 0
+	Err = "None"
+	Sprit_Value = 0
+'Trans
+	Select Case Model
+		Case "FindAll", "Find_All","findall"
+			Goto Code_ExeEx_Try_Model
+		Case "IGAI"
+			Goto Code_ExeEx_IGAI_Model
+	End Select
+'
+Rem Code_ExeEx_Try_Model
+	Text = ""
+	myArray = split(Execute_Way, ",")
+	For i = 0 To UBound(myArray)
+		Err_Code = Code_Exe(Codes(myArray(i)))
+		GoAhead = AI_WhereIsII(Codes, Model, Err_Code, Sprit_Value)
+		If (GoAhead > 0)and(GoAhead <> 999) Then 	'Find it<<
+			If (sum = 0) Then 
+				Text = myArray(i)
+			Else 
+				Text=Text&","&myArray(i)
+			End If
+			sum = sum + 1
+		ElseIf (GoAhead = 999) Then
+			//MsgBox "I am Crazy,But I can't stop!"
+		End If
+	Next
+	If (sum > 0) Then 	'至少找到一个
+		Err = Text
+		Goto Code_ExeEx_Return
+	Else 
+		Sprit_Value = Sprit_Value + 1		'标记重复程度
+		Goto Code_ExeEx_Try_Model
+	End If
+Rem Code_ExeEx_IGAI_Model
+	Text = ""
+	myArray = split(Execute_Way, ",")
+	For i = 0 To UBound(myArray)
+		Err_Code = Code_Exe(Codes(myArray(i)))
+		GoAhead = AI_WhereIsII(Codes, Model, Err_Code, Sprit_Value)
+		If (GoAhead > 0)and(GoAhead <> 999) Then 	'Find it<<
+			If (sum = 0) Then 
+				Text = myArray(i)
+			Else 
+				Text=Text&","&myArray(i)
+			End If
+			sum = sum + 1
+		ElseIf (GoAhead = 999) Then
+			
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ Crazy>>>>>   ]", "9400D3")
+			Delay 3000
+			//MsgBox "I am Crazy,But I can't stop!"
+		End If
+	Next
+	If (sum > 0) Then 	'至少找到一个
+		Err = Text
+		Goto Code_ExeEx_Return
+	Else 
+		Sprit_Value = Sprit_Value + 1		'标记重复程度
+		If (Sprit_Value > SPIRIT_NORMAL) Then 
+			Goto Code_ExeEx_Return
+		Else 
+			Goto Code_ExeEx_Try_Model
+		End If
+	End If
+Rem Code_ExeEx_Return
+	Code_ExeEx = Err
+End Function
+/*
+-----------------------------------------------------------------------
+                File_Read split the Text with "@"
+-----------------------------------------------------------------------
+*/
+Function File_ReadEx(File_Name)
+'claim:
+	Dim i, Text, Get_Text
+	Dim URL, Num, j
+'initial:	
+	i = 0
+	Get_Text = ""
+	Num=""
+'core:	
+Rem File_Reading
+	URL = PATH & File_Name & Num & ".txt"
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then 
+		//MessageBox "URL=" & URL
+		Text = "T"
+		f = Plugin.File.OpenFile(URL)
+		If (i = 0) Then 
+			Text = Plugin.File.ReadLine(f)
+			Get_Text = Text
+		End If
+		While Text<>""
+			Text = Plugin.File.ReadLine(f)
+			If (Text <> chr(13))and(Text<>chr(10))and(Text<>"") Then 
+				Get_Text = Get_Text & "@" & Text
+			End If
+		Wend
+		Plugin.File.CloseFile f
+		//MsgBox "Get_Text"&i&"="&Get_Text
+	End If
+	j = int(i / 10)
+	Num = Cstr(j) & Cstr(i)
+	i = i + 1
+	If (i<101) Then
+		Goto File_Reading
+	Else 
+		Goto File_ReadEx_Ending
+	End If
+'return:
+Rem File_ReadEx_Ending
+	//MsgBox "Get_Text="&Get_Text
+	File_ReadEx = Get_Text
+End Function
+
+
+Function File_Read(File_Name)
+'claim:
+	Dim Text, Get_Text
+	Dim URL
+'initial:	
+	Get_Text = ""
+	Text = "T"
+'core:	
+	URL = PATH & File_Name & ".txt"
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then 
+		f = Plugin.File.OpenFile(URL)
+		Text = Plugin.File.ReadLine(f)
+		Get_Text = Text
+		While Text<>""
+			Text = Plugin.File.ReadLine(f)
+			If (Text <> chr(13))and(Text<>chr(10))and(Text<>"") Then 
+				Get_Text = Get_Text & "@" & Text
+			End If
+		Wend
+		Plugin.File.CloseFile f
+	End If	
+'return:
+	File_Read = Get_Text
+End Function
+/*
+-----------------------------------------------------------------------
+                Folder_Read: Return  Array()
+-----------------------------------------------------------------------
+*/
+Function Folder_Read(Folder_URL)
+'claim:
+	Dim i
+	Dim Read_File_Name
+	
+	Read_File_Name = Lib.文件.遍历指定目录下所有文件名(Folder_URL)
+/*
+	//test code:name from 0 to max-1
+	For i = 0 To UBound(Read_File_Name)-1
+		MessageBox "Folder File is:"&Read_File_Name(i)
+	Next
+*/
+	Folder_Read = Read_File_Name
+End Function
+
+
+/*
+------------------------------------------------------------------------------------
+           $$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        $  Core Function is define here:  $
+        $        execute codeline         $
+           $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+------------------------------------------------------------------------------------
+*/
+Function Code_Exe(codes)
+'claim:
+	Dim Code_Array, Code_Len
+	Dim x, y, code, time_delay, model
+	Dim First_Text,Second_Text,Post_Model
+	Dim Err_Code,Pic_Full_Name,x2,y2
+'initial:	
+	Err_Code = "None" 'no runing codes
+	code="None"		'code default is "None"
+	Code_Array = split(codes,",")
+	Code_Len = UBound(Code_Array)
+'core:	
+	If (Code_Len > 1) Then 'if codes have exactly three parall;Tips:"="表示等于和赋值
+		Err_Code = "UdefineAction"	'Action
+		x = Code_Array(0)
+		y = Code_Array(1)
+		code = Code_Array(2)
+	End If
+	If (Code_Len > 2) Then
+		time_delay = Code_Array(3)
+		Post_Model = Code_Array(3)
+		Call Plugin.Msg.ShowScrTXT(0, 15, 1024, 768, "[  Execute Code:"& code&"     ]", "0000FF")
+	End If
+	If (Code_Len > 3) Then 
+		model = Code_Array(4)
+		Call Plugin.Msg.ShowScrTXT(0, 15, 1024, 768, "[  Execute Code:"& code&"     ]", "0000FF")
+	End If
+	If (Code_Len > 5) Then 
+		Pic_Full_Name = Code_Array(3)
+		x2 = Code_Array(5)
+		y2 = Code_Array(6)
+		Call Plugin.Msg.ShowScrTXT(0, 15, 1024, 768, "[  Execute Code:"& code&":"&Pic_Full_Name&" ]", "0000FF")
+	End If
+	
+'trans
+	If (Code_Len = 2) Then 
+		Goto Three_Line_Codes
+	ElseIf (Code_Len = 3) Then
+		Goto Four_Line_Codes
+	ElseIf (Code_Len > 3) Then
+		If (model = "DM") Then 
+			If (START = 0) Then 
+				Call dm_InitialEx("Bgo 吾妻梨花")
+			End If
+			Goto Five_Line_Codes
+		Else 
+			Goto Four_Line_Codes
+		End If
+	End If
+
+Rem Three_Line_Codes
+	Select Case code
+		Case "D", "d"
+			Err_Code = myDouble_Click(x, y, 1000)
+		Case "C", "c"
+			Err_Code = myLeft_Click(x, y, 1000)
+		Case "R", "r"
+			Err_Code = myRight_Click(x, y, 1000)
+		Case "P", "p", "Post", "post"
+			Err_Code = dm_PostEx(x,y,Post_Model)
+		Case "Conf", "conf", "CONF"
+			If (Conf.Exists(y)) Then 
+				Conf.Remove (y)
+				Conf.Add y, x
+			Else 
+				Conf.Add y, x
+			End If
+			//MsgBox "Conf(" & y & ")=" & Conf("PATH")
+		Case "Script", "script"
+			Err_Code = Script_ExecutorII(y)
+		Case "rewriteconf","RConf","RewriteConf","Rewrite_Conf","RC"
+			Err_Code = Rewrite_CONF
+			
+		Case Else
+
+	End Select
+	Goto Code_Exe_Ending
+	
+Rem Four_Line_Codes	
+	Select Case code
+		Case "D", "d"
+			Err_Code = myDouble_Click(x, y, time_delay)
+		Case "C", "c"
+			Err_Code = myLeft_Click(x, y, time_delay)
+		Case "R", "r"
+			Err_Code = myRight_Click(x, y, time_delay)
+		Case "P", "p", "Post", "post"
+			Err_Code = dm_PostEx(x,y,Post_Model)
+		Case "Conf", "conf", "CONF"
+			If (Conf.Exists(y)) Then 
+				Conf.Remove (y)
+				Conf.Add y, x
+			Else 
+				Conf.Add y, x
+			End If
+			//MsgBox "Conf(" & y & ")=" & Conf("PATH")
+		Case "Script", "script"
+			Err_Code = Script_ExecutorII(y)
+		Case "rewriteconf","RConf","RewriteConf","Rewrite_Conf","RC"
+			Err_Code = Rewrite_CONF
+		Case Else
+		
+	End Select
+	Goto Code_Exe_Ending
+'DM Model:
+Rem Five_Line_Codes	
+	Select Case code
+		Case "D", "d"
+			Err_Code = dm_DoubleClick(x, y, time_delay)
+		Case "C", "c"
+			Err_Code = dm_LeftClick(x, y, time_delay)
+		Case "R", "r"
+			Err_Code = dm_RightClick(x, y, time_delay)
+		Case "P", "p", "Post", "post"
+			//MessageBox "Post_Model=" & Post_Model
+			//dm.KeyPress 65
+			Err_Code = dm_PostEx(x,y,Post_Model)
+		Case "K", "k", "Key"
+			'wait a code..
+		Case "FindPic"
+			Err_Code = dm_FindPicEx(x, y, x2, y2, Pic_Full_Name, FINDPIC_TIMES, "Default")
+		Case "FindPicEx"
+			Err_Code = dm_FindPicEx(x, y, x2, y2, Pic_Full_Name, FINDPIC_TIMES, "Default")
+		Case "FindPicEx_Dynamic"
+			Err_Code = dm_FindPicEx(x, y, x2, y2, Pic_Full_Name, FINDPIC_TIMES, "Dynamic")
+		Case "FindPicEx_OR"
+			Err_Code = dm_FindPicEx(x, y, x2, y2, Pic_Full_Name, FINDPIC_TIMES, "OR")
+		Case "Conf", "conf", "CONF"
+			If (Conf.Exists(y)) Then 
+				Conf.Remove (y)
+				Conf.Add y, x
+			Else 
+				Conf.Add y, x
+			End If
+			//MsgBox "Conf(" & y & ")=" & Conf("PATH")
+		Case "Script", "script"
+			Err_Code = Script_ExecutorII(y)
+		Case "rewriteconf","RConf","RewriteConf","Rewrite_Conf","RC"
+			Err_Code = Rewrite_CONF
+		Case Else
+			
+	End Select
+	Goto Code_Exe_Ending
+	
+Rem Code_Exe_Ending	
+'return:
+	Call Plugin.Msg.ShowScrTXT(300, 0, 1024, 768, "[ "&Err_Code&" ]", "ADFF2F")
+	Code_Exe = Err_Code
+End Function
+
+/*
+---------------------------- dm_FindPicEx -------------------------------------------
+*/
+Function dm_FindPicEx(x, y, x2, y2, Pic_Full_Name, Find_Time,Model)
+'claim:
+	Dim ax, ay, i, j, Err_Code,myArray
+	Dim Pics_Num, sim
+	Dim Pics_Name		'Such as:1.bmp|2.bmp
+	Dim Pics_Array		'Array
+	Dim Read_Folder_Name'Array
+	Dim x1s,y1s,x2s,y2s	'Array sum as Pics_Array
+	Dim Pics_Errs			'Array sum as Pics_Array
+	Dim Dynamic_Folder_Name
+'initial:
+	i = 0
+	j = 0
+	ax = int((x2 - x) / 2)
+	ay = int((y2 - y) / 2)
+	sim = FINDPIC_SIM
+	Pics_Name = ""
+	Err_Code = "NoFound"
+	
+'Trans and Initial:
+	Select Case Model
+		Case 0, "0", "Default","Pics"
+			Pics_Array = split(Pic_Full_Name, "|")
+			Pics_Num = UBound(Pics_Array)				'Pics_Num为下标
+			If (Pics_Num > 2) Then 
+				sim = FINDPIC_SIM - 0.1
+			End If
+			dm_ret = dm.SetPath(dm_PATH & "Pic")'设置:默认图片绝对路径
+			Goto dm_FindPicEx_Default_Model
+		Case 1, "1", "Dynamic"
+			//MessageBox "Dynamic"
+			//MsgBox "Pic_Full_Name="&Pic_Full_Name
+			myArray = split(Pic_Full_Name, ".")
+			Dynamic_Folder_Name = myArray(0)
+			//MsgBox "Dynamic_Folder_Name="&Dynamic_Folder_Name
+			Folder_URL = dm_PATH & "Pic\" & Dynamic_Folder_Name
+			//MsgBox "Folder_URL ="&Folder_URL 
+			Read_Folder_Name = Folder_Read(Folder_URL)
+			Pics_Num = 0
+			Pics_Name = ""
+			For i = 0 To UBound(Read_Folder_Name)-1					'spell bug!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				//MessageBox "Folder File is:" & Read_Folder_Name(i)	'data type bug??????????????????????????????????????????????????????????????
+				If (Read_Folder_Name(i) <> "") Then 
+					If (i = 0)Then 
+						Pics_Name = Read_Folder_Name(i)
+						Pics_Num = Pics_Num + 1				'Pics_Num为实际数目
+					Else 
+						Pics_Name = Pics_Name & "|" & Read_Folder_Name(i)
+						Pics_Num = Pics_Num + 1
+					End If
+				End If
+			Next
+			//MsgBox "Pics_Name="&Pics_Name&Chr(13)&Chr(10)&"Pics_Num="&Pics_Num
+			sim = FINDPIC_SIM - 0.1
+			dm_ret = dm.SetPath(Folder_URL)'设置:默认图片绝对路径:更进一层！
+			Goto dm_FindPicEx_Dynamic_Model
+		Case 2, "2", "OR", "or"
+			Pics_Array = split(Pic_Full_Name, "|")
+			x1s = split(x, "|")
+			y1s = split(y, "|")
+			x2s = split(x2,"|")
+			y2s = split(y2, "|")
+			Pics_Num = UBound(Pics_Array)					'Pics_Num为下标
+			dm_ret = dm.SetPath(dm_PATH & "Pic")'设置:默认图片绝对路径
+			Goto dm_FindPicEx_OR_Model
+		Case Else
+			Goto dm_FindPicEx_Return
+	End Select
+	
+'Model:Default
+Rem dm_FindPicEx_Default_Model
+	dm_ret = dm.FindPic(x-1,y-1,x2+1,y2+1,Pic_Full_Name,"000000",sim,0,intX,intY)
+	If intX >= 0 and intY >= 0 Then 
+		Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "Pic Finded:" & Pic_Full_Name, "0000FF")
+		dm_ret = dm.SetPath(dm_PATH & "Ocr")'设置:默认绝对路径
+		If (Pics_Num > 1) Then 
+			Err_Code  = "Found" & "|" & "Pics"&"|" & dm_ret
+		Else 
+			Err_Code  = "Found" & "|" & "Pic"&"|" & "1"
+		End If
+		Goto dm_FindPicEx_Return
+    Else 
+    	If (i < Find_Time) Then 
+    		i = i + 1
+    		Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[  Pic Find:>> " & i&"th time  ]", "0000FF")
+    		Goto dm_FindPicEx_Default_Model
+    	Else 
+    		If (Pics_Num > 1) Then 
+				Err_Code  = "NoFound" & "|" & "Pics"&"|" & Pics_Num
+			Else 
+				Err_Code  = "NoFound" & "|" & "Pic"&"|" & Pics_Num
+			End If
+    		Goto dm_FindPicEx_Return
+    	End If
+	End If
+'Model:Dynamic
+Rem dm_FindPicEx_Dynamic_Model
+	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ FindPic_Dynamic>>" & i & "th" & Pic_Full_Name & " ]", "0000FF")
+	//MsgBox "Pics_Name="&Pics_Name
+	dm_ret = dm.FindPic(x-1,y-1,x2+1,y2+1,Pics_Name,"000000",sim,0,intX,intY)
+	If intX >= 0 and intY >= 0 Then 
+		Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "Dynamic Finded:>>" & Pic_Full_Name, "0000FF")
+		dm_ret = dm.SetPath(dm_PATH & "Ocr")'设置:默认绝对路径
+		Err_Code = "Found" & "|" & "Dynamic" & "|" & dm_ret
+		//MsgBox "Dynamic Model Success"
+		Goto dm_FindPicEx_Return
+    Else 
+    	If (i < Find_Time) Then 
+    		i = i + 1
+    		Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ Dynamic Pic Find:>> " & i&"th time ]", "0000FF")
+    		Goto dm_FindPicEx_Dynamic_Model
+    	Else 
+    		Err_Code  = "NoFound" & "|" & "Dynamic"&"|" & Pics_Num-1
+    		Goto dm_FindPicEx_Return
+    	End If
+	End If
+'Model:OR
+Rem dm_FindPicEx_OR_Model
+	For j = 0 To Pics_Num
+		dm_ret = dm.FindPic(x1s(j)-1,y1s(j)-1,x2s(j)+1,y2s(j)+1,Pics_Array(j),"000000",sim,0,intX,intY)
+		If intX >= 0 and intY >= 0 Then 
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "Pic Finded:" & Pic_Full_Name, "0000FF")
+			Err_Code ="Found" & "|" & "OR"&"|" & j	'Remember which one is finded.
+			dm_ret = dm.SetPath(dm_PATH & "Ocr")'设置:默认绝对路径
+			Goto dm_FindPicEx_Return
+		End If
+	Next
+    If (i < Find_Time) Then 
+    	i = i + 1
+    	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[  OR Pic Find:>> " & i&"th time  ]", "0000FF")
+    	Goto dm_FindPicEx_OR_Model
+    Else 
+    	Err_Code="NoFound|OR|"&Pics_Num
+    	Goto dm_FindPicEx_Return
+    End If
+    
+'return:
+Rem dm_FindPicEx_Return
+	dm_FindPicEx = Err_Code							'Return is different in Dif Models
+End Function
+/*
+--------------------------  AI PART -----------------------------------------
+*/
+
+
+
+
+
+
+
+
+/*
+-----------------------------------------------------------------------------
+        Mouse AND Keyboard Function is here:
+-----------------------------------------------------------------------------
+*/
+Function myDouble_Click(x, y, Time)
+	Delay Time
+	MoveTo x,y
+	LeftDoubleClick 1
+	myDouble_Click = "D"
+End Function
+Function dm_DoubleClick(x, y, Time)
+	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[      Now DoubleClicked   ]", "0000FF")
+	dm.MoveTo x, y
+	dm.LeftDoubleClick 
+	Delay Time
+	dm_DoubleClick = "D"
+End Function
+
+Function myRight_Click(x, y, Time)
+	Delay Time
+	MoveTo x,y
+	RightClick 1
+	myRight_Click = "R"
+End Function
+Function dm_RightClick(x, y, Time)
+	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[      Now RightClicked   ]", "0000FF")
+	dm.MoveTo x, y
+	dm.RightClick 
+	Delay Time
+	dm_RightClick = "R"
+End Function
+
+Function myLeft_Click(x, y, Time)
+	Delay Time
+	MoveTo x,y
+	LeftClick 1
+	myLeft_Click = "L"
+End Function
+Function dm_LeftClick(x, y, Time)
+	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[      Now LeftClicked   ]", "0000FF")
+	dm.MoveTo x, y
+	dm.LeftClick 
+	Delay Time
+	dm_LeftClick = "L"
+End Function
+
+Function dm_KeyPressStr(Text,Model)
+	Dim myText, Code_Array, Code_Len
+	Dim Code, vk_code_Array, vk_code_PressTime_Array
+	Dim myArray,tempArray
+	myText = Text
+	Code_Len = Len(Text)
+	
+'Trans:
+	Select Case Model
+		Case 0, "0", "Default"
+			Goto dm_KeyPressStr_Default_Model
+		Case 1, "1", "vk_code", "Vitual_Key_Code"
+			Goto dm_KeyPressStr_Vitual_Key_Code_Model
+		Case Else
+			Goto dm_KeyPressStr_Return
+	End Select
+'Model:Default
+Rem dm_KeyPressStr_Default_Model
+	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[   dm_KeyPressStr >>Default  ]", "0000FF")
+	For i = 48 To 122
+		myText = Replace(myText, Chr(i), Chr(i) & ",")
+	Next
+	//MessageBox "myText="&myText
+	Code_Array = split(myText, ",")
+	For i = 0 To UBound(Code_Array)
+		//dm.KeyPress 65
+		Code = Asc(Code_Array(i))
+		If (Code > 96) and (Code < 123) Then '输入的是小写
+			Code = Code - 32				'转换虚拟码
+			Key_State = dm.GetKeyState(20)
+			//MsgBox "CAPSLOCK="&Key_State
+			If (Key_State = 1) Then 			'如果大写开启
+				dm.KeyPress 20 				'关闭它
+			End If		
+		ElseIf (Code > 64) and (Code < 91) Then
+			Key_State = dm.GetKeyState(20)
+			If (Key_State = 0) Then 		'如果大写关闭
+				dm.KeyPress 20 				'开启它
+			End If	
+		End If
+		dm.KeyPress Code
+	Next
+	Goto dm_KeyPressStr_Return
+'Model:vk_code
+Rem dm_KeyPressStr_Vitual_Key_Code_Model
+	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[   dm_KeyPressStr >> vk_code  ]", "0000FF")
+	//MsgBox "Text="&Text
+	myArray = split(Text, "|")  'such as 12:23|23:23|67:89
+	//MsgBox "myArray(0)="&myArray(0)
+	For i = 0 To UBound(myArray)
+		tempArray = split(myArray(i), ":")
+		vk_code_Array(i) = tempArray(0)
+		vk_code_PressTime_Array(i) = tempArray(1)
+		//MsgBox "tempArray(0)=" & tempArray(0) & Chr(13) & Chr(10) & "tempArray(1)=" & tempArray(1)
+		vk_code = int(tempArray(0))			'数据类型不一致，导致许多致命的错误bug.
+		presstime = int(tempArray(1))		'特别棘手！！！
+		For j = 0 To presstime				'还有拼写错误，初始化问题很容易出bug.
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[   dm_KeyPressStr >> press"&Chr(vk_code)&"  ]", "0000FF")
+			dm.KeyPress vk_code				'还有中文标点：致命的bug
+			Delay 200
+		Next
+	Next
+	/*
+	For i = 0 To UBound(myArray)
+		For j = 0 To int(vk_code_PressTime_Array(i))
+			MessageBox "vk_code_Array(i)="&vk_code_Array(i)
+			dm.KeyPress vk_code_Array(i)
+			Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[   dm_KeyPressStr >> vk_code="&vk_code_Array(i)&"  ]", "0000FF")
+			Delay 2000
+		Next
+	Next
+	*/
+	Goto dm_KeyPressStr_Return
+	
+'return:
+Rem dm_KeyPressStr_Return
+	dm_KeyPressStr = "Key"
+End Function
+
+
+Function dm_PostEx(First_Text, Dict_Name, Model)
+'claim:
+	Dim Read_Text
+	Dim Post_Array
+	Dim Post_Num
+	Dim Post_This_Num	'now is to post nth
+'initial:
+	Post_Num = int(First_Text)
+	Post_This_Num = Post_Num + LAST_POST_NUM
+'Trans:	
+	Select Case Model
+		Case "Dict_Model"
+			Goto dm_PostEx_Dict_Model
+		Case "KeyPress_Model"
+			Goto dm_PostEx_KeyPress_Model
+		Case Else
+			Goto dm_PostEx_Return
+	End Select
+'Model:Dict_Model
+Rem dm_PostEx_Dict_Model
+	Read_Text = File_Read(Dict_Name)
+	Post_Array = split(Read_Text, "@")
+	//dm.SetClipboard Post_Array(First_Text)
+	//MsgBox "Post_This_Num="&Post_This_Num &Chr(13)&Chr(10)&"LAST_POST_NUM="&LAST_POST_NUM
+	dm.SendString HANDLE, Post_Array(Post_This_Num)
+	THIS_POST_NUM = THIS_POST_NUM + 1
+	Delay 800
+	Goto dm_PostEx_Return
+'Model:KeyPress_Model eg.8:32|2:32,0,Post,KeyPress_Model,DM
+Rem dm_PostEx_KeyPress_Model
+	//MessageBox "KeyPress Model?"
+	//dm.SetClipboard Post_Array(First_Text)
+	Call dm_KeyPressStr(First_Text,"vk_code")
+	Delay 1000
+	Goto dm_PostEx_Return
+'Return:
+Rem dm_PostEx_Return
+	dm_PostEx = "P"
+End Function
+
+
+Function dm_InitialEx(Model)
+'claim:
+	Dim Hwnd
+'initial:
+	set dm = createobject("dm.dmsoft")'创建大漠对象
+	PutAttachment dm_PATH,"*.txt" '设置:字典绝对路径
+	dm_ret = dm.SetPath(dm_PATH & "Ocr")'设置:默认绝对路径
+	dm_ret = dm.SetDict(0, "shadowverse_guofu.txt")'设置:字典位置
+	Hwnd = 0
+'core:
+	Select Case Model
+		Case 0, "0", "M", "m", "Mouse", "Mouse_Model"
+			Goto Mouse_Model
+		Case Else
+			Goto Name_Model
+	End Select
+
+Rem Mouse_Model
+	Hwnd = dm.GetMousePointWindow()
+	If (Hwnd <> 0) Then 
+		Goto dm_Binding
+	Else 
+		//MsgBox "Mouse_Model no work!"
+	End If
+	Goto dm_Initial_Ending
+	
+Rem Name_Model
+	Hwnd = dm.FindWindow("", Model)
+	If (Hwnd = 0) Then 
+		Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "dm.dll regsvr32 failed", "0000FF")
+		Hwnd = Plugin.window.Find(0, Window_Name)  //然后利用按键的锁定窗口找到句柄
+	End If
+	If (Hwnd <> 0) Then 
+		Goto dm_Binding
+	Else 
+		//MsgBox "Name_Model no work!"
+	End If
+	Goto dm_Initial_Ending
+
+Rem dm_Binding
+    Call Plugin.window.Move(Hwnd, 0, 0)
+    dm.DmGuard 1, "np"   //大漠的绑定模式
+    dm_ret = dm.BindWindow(Hwnd, "dx2", "windows", "windows", 0)
+    Goto dm_Initial_Ending
+ /*
+ -----------------------------------------------------------------------------------------------------
+ 			以上为使用大漠插件必经途径： 
+ 			1.查找句柄
+ 			2.绑定大漠插件对象
+ -----------------------------------------------------------------------------------------------------
+ */
+ 
+ 'return:
+ Rem dm_Initial_Ending
+ If (Hwnd <> 0) Then 
+ 	START=1 'now dm.dll is running
+ 	//MsgBox "dm bind successful"
+ 	HANDLE = Hwnd
+ 	dm_InitialEx = 1
+ Else 
+ 	MsgBox "dm bind Failed."
+ 	dm_InitialEx = 0
+ End If
+End Function
+/*
+--------------------------------  IsNameUsedEx .txt Files  ------------------------------------------
+*/
+Function IsNameUsedEx(File_Name,Model)
+'claim:
+	Dim URL
+	Dim Num
+	Dim i, j
+'initial:	
+	Num=""
+	i = 0
+'Core or Trans:	
+Rem Finding
+	Select Case Model
+		Case 0, "0", "Default", "TXT"
+			URL = PATH & File_Name & Num & ".txt"
+		Case "P", "Pic", "pic", "Picture"
+			URL = PATH & "damo\Pic\" & File_Name & Num & ".bmp"
+		Case Else
+			MessageBox "Err:Not Design Model!"&chr(13)&chr(10)&"Tips:You Should add this to IsNameUsedEx Func."
+			Goto IsNameUsedEx_Return
+	End Select
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then 
+		j = int(i / 10)
+		Num=Cstr(j)&Cstr(i Mod 10)
+		i = i + 1
+		Goto Finding
+	Else 
+		Goto IsNameUsedEx_Return
+	End If	
+'return:	
+Rem IsNameUsedEx_Return
+	IsNameUsedEx = Num
+End Function
+//获取目录下：文件名 complete
+Function File_SaveEx(File_Name, String_Data, Model)
+'claim;
+	Dim label
+	Dim Num
+'initial:
+	label=0	//when write failed return 0,else return 1
+	//Msgbox "start open.."&URL
+	
+	Select Case Model
+		Case 0, "0", "Default"
+			Goto File_SaveEx_Default_Model
+		Case "New", "new"
+			Goto File_SaveEx_New_Model
+		Case "Create", "create"
+			Goto File_SaveEx_Create_Model
+		Case "Rewrite", "rewrite"
+			Goto File_SaveEx_Rewrite_Model
+	End Select
+'Model:Default
+Rem File_SaveEx_Default_Model
+	Num = IsNameUsedEx(File_Name,"TXT")
+	URL = PATH & File_Name & Num &".txt"
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then
+		f = Plugin.File.OpenFile(URL)
+		Call Plugin.File.WriteFile(f,String_Data)
+		Plugin.File.CloseFile f
+		//MsgBox "HAVE SAVE IN OLD FILE:"&URL
+		label = 1
+	Else 
+		f = Plugin.File.OpenFile(URL)
+		Call Plugin.File.WriteFile(f,String_Data)
+		Plugin.File.CloseFile f
+		//MsgBox "HAVE SAVE IN NEW FILE:"&URL
+		label = 1
+	End If
+	Goto File_SaveEx_Return
+'Model:New	
+Rem File_SaveEx_New_Model	
+	Num = IsNameUsedEx(File_Name,"TXT")
+	URL = PATH & File_Name & Num &".txt"
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then
+		MessageBox "Tips:You Func IsNameUsedEx is Go Wrong."
+	Else 
+		f = Plugin.File.OpenFile(URL)
+		Call Plugin.File.WriteFile(f,String_Data)
+		Plugin.File.CloseFile f
+		//MsgBox "HAVE SAVE IN:"&URL
+		label = 1
+	End If
+	Goto File_SaveEx_Return
+'Model:Create
+Rem File_SaveEx_Create_Model	
+	Num = IsNameUsedEx(File_Name,"TXT")
+	URL = PATH & File_Name & Num &".txt"
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then
+		MessageBox "FILE IS EXIST."
+		label = 1
+	Else 
+		f = Plugin.File.OpenFile(URL)
+		Call Plugin.File.WriteFile(f,String_Data)
+		Plugin.File.CloseFile f
+		//MsgBox "HAVE CREATED:"&URL
+		label = 1
+	End If
+	Goto File_SaveEx_Return
+'Model:Rewrite
+Rem File_SaveEx_Rewrite_Model
+	URL = PATH & File_Name & ".txt"
+	f = Plugin.File.OpenFile(URL)
+	Call Plugin.File.WriteFile(f,String_Data)
+	Plugin.File.CloseFile f
+	//MsgBox "Script Runing Data is Save in Conf"
+	Goto File_SaveEx_Return	
+'return:
+Rem File_SaveEx_Return
+	File_SaveEx = label
+End Function
+/*
+--------------------------------  dm_Regsvr32()      ------------------------------------------
+*/
+Function dm_Regsvr32()
+
+// 这个need_ver作为本脚本需要使用的插件版本. 如果要换插件时，记得更改这个值.
+need_ver = "3.1233"
+ 
+
+// 插件需要用到atl系统库,有些XP精简系统会把atl.dll精简掉. 为了防止注册失败，这里手动注册一下atl.dll
+set ws=createobject("Wscript.Shell")
+ws.run "regsvr32 atl.dll /s"
+set ws=nothing
+
+ 
+// 释放附件>>>>>>>>>>>>>>>>>>>
+// 这里选择c盘的test-_game作为插件的基本目录 也就是SetPath对应的目录。所以所有资源都释放在此目录.
+PutAttachment "c:\test_game","*.*"
+// 这里要用到RegDll来注册插件，所以必须释放到Plugin. 但是切记不能把dm.dll释放到Plugin.那会导致插件失效.
+PutAttachment ".\Plugin" ,"RegDll.dll"
+
+
+// 插件注册开始>>>>>>>>>>>>>>>>>>>
+// 下面开始注册插件,先尝试用RegDll来注册.这里必须使用绝对路径。以免有别人把dm.dll释放在系统目录.造成版本错误.
+Call Plugin.RegDll.Reg("c:\test_game\dm.dll") 
+// 这里判断是否注册成功
+set dm = createobject("dm.dmsoft")
+ver = dm.Ver()
+if ver <> need_ver then
+// 先释放先前创建的dm
+set dm = nothing
+   // 再尝试用regsvr32 来注册. 这里必须使用绝对路径。以免有别人把dm.dll释放在系统目录.造成版本错误.
+set ws=createobject("Wscript.Shell")
+ws.run "regsvr32 c:\test_game\dm.dll /s"
+set ws=nothing
+Delay 1500  
+// 再判断插件是否注册成功
+set dm = createobject("dm.dmsoft")
+ver = dm.Ver()
+if ver <> need_ver then
+// 这时，已经确认插件注册失败了。 弹出一些调试信息，以供分析.
+messagebox "插件版本错误,当前使用的版本是:"&ver&",插件所在目录是:"&dm.GetBasePath()
+messagebox "请关闭程序,重新打开本程序再尝试"
+    endscript
+  end if
+end if
+// 插件注册结束<<<<<<<<<<<<<<<
+End Function
+
+Function mySplitEx(String_Data, str1, Model_or_Complex, Num_or_String)	'mySplit("a|b|c|d","|","B",1) 返回倒三角字串第一位		
+	Dim myArray									'eg."B"a|b|c|d    则返回:b|c|d   第二位c|d  第三位 d  超出返回 0
+	Dim Err, Num								'eg."F"正三角模式   则返回:a  a|b  a|b|c  a|b|c|d  表示0-3位 Error:超出返回 0
+	Dim Len, i, Insert_Len								'eg."G"取点模式 返回指定点的值
+	Dim Text									'eg."I"插入模式  mySplit("23,34,D,234,DM", ",", "|23","Insert" ,1) 
+	Dim Model,split_char,Insert_string	'eg.  23|23,34,D,234,DM 同格式字符串,同体插入
+	Dim Insert_Rules(100)
+
+'initial:										'eg.  23|23,34,D,234,DM
+	Num = Num_or_String
+	Insert_string = Num_or_String	'insert 分割符默认为"|"
+	Model = Model_or_Complex
+	Complex = Model_or_Complex
+	split_char = str1			'split 分割符
+	Text = ""
+	Err = 0
+	i = 0
+	myArray = split(String_Data, split_char)
+	Len = UBound(myArray)
+	For i = 0 To Len
+		Insert_Rules(i) = "I"	'默认同体插入
+	Next
+'Trans:
+Rem mySplit_Trans
+	Select Case Model
+		Case "b", "B", "back", "Back"
+			Goto mySplit_Back_Model
+		Case "f", "F", "first", "First"
+			Goto mySplit_First_Model
+		Case "g", "G", "get", "Get"
+			Goto mySplit_Get_Model
+		Case "i", "I", "insert", "Insert"
+			Goto mySplit_Insert_Model
+		Case Else	'类似正则表达式
+			
+			Goto mySplit_Complex
+	End Select
+'Model:Back
+Rem mySplit_Back_Model
+	If (Num > Len) Then 
+		Err = 0
+		Goto mySplit_Return
+	Else 
+		If (Num > 0) Then 
+			If (Num < Len) Then 
+				Text = myArray(Num)
+				For i = Num+1 To Len
+					Text=Text&split_char &myArray(i)
+				Next
+				Err = Text
+			Else 
+				Err = myArray(Len)
+			End If
+		Else 
+			Err = String_Data
+		End If
+	End If
+	Goto mySplit_Return
+'Model:First
+Rem mySplit_First_Model
+	If (Num > Len) Then 
+		Err = 0
+		Goto mySplit_Return
+	Else 
+		If (Num > 0) Then 
+			If (Num < Len) Then 
+				Text = myArray(0)
+				For i = 1 To Num
+					Text = Text & split_char & myArray(i)	
+				Next
+				Err = Text
+			Else 
+				Err = String_Data
+			End If
+		Else 
+			Err = myArray(0)
+		End If
+	End If
+	Goto mySplit_Return
+'Model:Get
+Rem mySplit_Get_Model
+	If (Num > Len) Then 
+		Err = 0
+		Goto mySplit_Return
+	Else 
+		Err = myArray(Num)	
+	End If
+	Goto mySplit_Return
+'Model:Insert
+Rem mySplit_Insert_Model
+	Insert_string = split(Num_or_String, split_char)
+	Insert_Len = UBound(Insert_string)
+	Text = ""
+	Short_Len = Len
+	If (Insert_Len < Len) Then 
+		Short_Len = Insert_Len
+	End If
+	For i = 0 To Len
+		If (i > Short_Len) Then 
+			If (i = 0) Then 
+				Text = myArray(i)
+			Else 
+				Text = Text &split_char &myArray(i)
+			End If
+		Else 
+			myArray(i) = myArray(i) & "|" & Insert_string(i)	'Insert
+			If (i = 0) Then 
+				Text = myArray(i)
+			Else 
+				Text = Text &split_char &myArray(i)
+			End If
+		End If	
+	Next
+	Err = Text	
+	Goto mySplit_Return
+'Model:Complex>>trans:
+Rem mySplit_Complex
+	Rules_Len = 0
+	For i = 48 To 122
+		Model_or_Complex = Replace(Model_or_Complex, Chr(i),Chr(i)&",") 'Replace 使用要点:Chr(i)i=48-122,必须使用","分割！否则出错
+	Next
+	Rules_string=split(Model_or_Complex,",")
+	Rules_Len = UBound(Rules_string)
+	Insert_string = split(Insert_string, split_char)					'按键精灵变量可以自行转换
+	Insert_Len = UBound(Insert_string)
+	Text = ""
+	Short_Len = Len
+	If (Insert_Len < Len) Then 
+		Short_Len = Insert_Len
+	End If
+	If (Rules_Len < Len) Then 
+		Short_Len = Rules_Len
+	End If
+	For i = 0 To Len
+		If (i > Short_Len) Then 
+			If (i = 0) Then 
+				Text = myArray(i)
+			Else 
+				Text = Text &split_char &myArray(i)
+			End If
+		ElseIf (Rules_string(i) = "I") Then
+			myArray(i) = myArray(i) & "|" & Insert_string(i)	'Insert
+			If (i = 0) Then 
+				Text = myArray(i)
+			Else 
+				Text = Text &split_char &myArray(i)
+			End If
+		Else 
+			If (i = 0) Then 
+				Text = myArray(i)
+			Else 
+				Text = Text &split_char &myArray(i)
+			End If
+		End If	
+	Next
+	Err = Text	
+	Goto mySplit_Return
+'return:
+Rem mySplit_Return
+	mySplitEx = Err
+End Function
