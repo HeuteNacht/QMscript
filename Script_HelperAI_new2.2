@@ -1,0 +1,915 @@
+/*
+----------------------------------------------------------------------
+	    Global Var
+----------------------------------------------------------------------
+*/
+Global PATH
+Global dm_PATH
+Global dm_Dict_PATH
+Global PATH_PIC
+Global START	'label dm.dll is runing
+Global SAW
+Global HANDLE
+Global Script_Name
+Global Window_Name
+dm_PATH = "D:\HeuteNacht\anjian\damo\"
+dm_Dict_PATH = dm_PATH & "\Ocr\dm_soft.txt"
+PATH = "D:\HeuteNacht\anjian\"
+PATH_PIC = "D:\HeuteNacht\anjian\damo\Pic\"
+START = 0
+SAW = ""
+HANDLE = 0
+Window_Name = ""
+'------------------------------- 兼容性:笔记本键盘字母->机械键盘 -------------------------------------
+Global KEY_JIANRONG
+KEY_JIANRONG = 0
+'---------------------------------------------------------------------------------------------------
+Script_Name = "HeuteNacht"
+
+
+Dim Conf                   '创建：Conf属性字典  *注意：字典不能声明为全局变量*
+Set Conf  = CreateObject("Scripting.Dictionary")
+Conf.Add "PATH", "D:\HeuteNacht\anjian\"    '添加键和项目
+Conf.Add "PATH_Conf_URL", "D:\HeuteNacht\anjian\Conf.txt"  
+//MsgBox "Conf=" & Conf("PATH")
+
+Dim Script_Dict                   '创建：属性字典
+Set Script_Dict = CreateObject("Scripting.Dictionary")
+Script_Dict.Add "choice_wide", "50"    '添加键和项目
+/*
+-----------------------------------------------------------------------
+			Main Function
+-----------------------------------------------------------------------
+*/
+
+//test codes
+//Call What_Key_Press()
+//Call What_Click()
+/*
+START = dm_Initial("Bgo 吾妻梨花")
+If (START = 1) Then 
+	MsgBox "Initial Successful."
+	SAW = dm_Find_OCR
+	MsgBox "I saw "&SAW
+End If
+*/
+/*
+For i = 0 To 3
+	strings = mySplit("a|b|c|d", "|", "F", i)
+	MsgBox "First strings=" & strings
+	strings = mySplit("a|b|c|d", "|", "B", i)
+	MsgBox "Back strings=" & strings
+	strings = mySplit("a|b|c|d", "|", "G", i)
+	MsgBox "Get strings="&strings
+Next
+*/
+
+Call Set_CONF(Script_Name)
+Call Help2Script(Script_Name,"KeyModel")
+
+
+/*
+-----------------------------------------------------------------------
+			Function Defined		
+.......................................................................
+			Main Function:
+-----------------------------------------------------------------------
+*/
+
+
+Function Help2Script(File_Name,Model)
+'claim:
+	Dim label,click, Now_KeyPress, Not_End, Now_Click
+	Dim time_start, time_end, time_delay
+	Dim Text, URL, i,Pic_Num,File_Num
+	Dim sTime1, sTime2, Last_Time
+	Dim x, y, dmx, dmy, dmx1, dmy1, dmx2, dmy2, Success
+	Dim Pics_Name  //dynamic pic capture
+	Dim Post_Num, Post_Dict_Name
+	Dim title//后台窗口标题
+	Dim window_x1
+	Dim window_y1
+'initial:
+	label = 0
+	i = 0
+	Not_End = 1	//label not end
+	Text=""	//try to record the press and mouse position.
+	URL = PATH & File_Name
+	sTime1 = 0
+	sTime2 = 0
+	File_Num = ""
+	Pic_Num = ""
+	Pics_Name=""
+	Post_Num = 0
+	Post_Dict_Name = ""
+	x1s = ""
+	y1s = ""
+	x2s = ""
+	y2s = ""
+	
+'core:
+	Select Case Model
+		Case 0, "0", "Key", "keyboard","Keyboard","KeyModel","Key_Model"
+			Goto Keyboard_Model
+		Case 1, "1", "Mouse", "mouse"
+			Goto Mouse_Model
+	End Select
+	
+Rem Keyboard_Model
+	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "Press Any Key...", "0000FF")
+	While Not_End
+		time_start = Plugin.Sys.GetDateTime()//system data time
+		Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768,chr(Now_KeyPress) & "press in:"&time_start, "0000FF")
+		Now_KeyPress = WaitKey()
+		sTime1 = Plugin.Sys.GetTime()		//you press "key" then wait for mouse "click",for caculate Delay
+		time_end = Plugin.Sys.GetDateTime()
+		Now_KeyPress = Now_KeyPress + KEY_JIANRONG
+		
+		Select Case Now_KeyPress
+			Case 67, C, 68, D, 82, R
+				click = WaitClick()			//wait for click
+				GetCursorPos x, y			//get the mouse position
+				//dm_ret = dm.GetWindowRect(HANDLE, window_x1, window_y1, window_x2, window_y2)
+				dmx = x - window_x1
+				dmy = y - window_y1
+				sTime2 = Plugin.Sys.GetTime()
+				time_delay = sTime2 - sTime1
+				If (START = 1) Then 
+					Text = Text & Cstr(dmx) & "," & Cstr(dmy) & "," & chr(Now_KeyPress) & "," & Cstr(time_delay) & "," & "DM|"&title & chr(13) & chr(10)
+				Else 
+					Text = Text &Cstr(x) &"," &Cstr(y) &"," &chr(Now_KeyPress) &"," &Cstr(time_delay) &chr(13)&chr(10)
+				End If
+				Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, " ?" & Now_KeyPress & " time=" & time_end, "0000FF")
+			Case 80, P, "Post", "post"
+				File_Num = IsNameUsedEx(File_Name, 0)
+				Post_Dict_Name = File_Name & File_Num & "_Dict"
+				click = WaitClick()			//wait for click
+				GetCursorPos x, y			//get the mouse position
+				//dm_ret = dm.GetWindowRect(HANDLE, window_x1, window_y1, window_x2, window_y2)
+				dmx = x - window_x1
+				dmy = y - window_y1
+				sTime2 = Plugin.Sys.GetTime()
+				time_delay = sTime2 - sTime1
+				If (START = 1) Then 
+					Text = Text & Cstr(dmx) & "," & Cstr(dmy) & "," & "C" & "," & Cstr(time_delay) & "," & "DM|"&title & chr(13) & chr(10) 'First,click 
+					Text = Text & Post_Num & "," & Post_Dict_Name  & "," & "Post" & "," & "Dict_Model" & "," & "DM|"&title & chr(13) & chr(10) 'Then Post
+					Post_Num = Post_Num + 1
+				Else 
+					Text = Text & Cstr(x) & "," & Cstr(y) & "," & "C" & "," & Cstr(time_delay) & chr(13) & chr(10) 				 'First,click
+					Text = Text & Post_Num & "," & Post_Dict_Name  & "," & "Post" & "," & "Dict_Model"  & chr(13) & chr(10)	 'Then Post
+					Post_Num = Post_Num + 1
+				End If
+				Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, " ?" & Now_KeyPress & " time=" & time_end, "0000FF")
+			Case 83, S
+				If (Post_Num > 0) Then 
+					Call File_SaveEx(Post_Dict_Name, "A New Dict For Post Here","Create")
+				End If
+				label = File_SaveEx(File_Name, Text,"New")
+				If label Then 
+					Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, " Congradulation!", "0000FF")
+					Delay 2000
+				Else 
+					Msgbox "Failed to Save!"
+				End If
+				Not_End = 0 //save and end.
+			Case 69, E	//If you press "E",and end the loop.
+				Not_End = 0
+				Msgbox "Script Ending!"
+			Case 73, I, "Initial"
+				Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, " DM Model >>F to Find Model", "0000FF")
+				//Delay 3000
+				GetCursorPos x, y
+				Window_x1 = x
+				window_y1 = y
+				title = dm_InitialEx("", "Mouse")
+				//Call dm_initialEx("Bgo 吾妻梨花","Name")
+			Case 74, J, "Initial_J"
+				Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, " Mouse_Get>>DM Model >>F to Find Model", "0000FF")
+				Call dm_initialEx("通过键盘调节GPS方位和移动速度","Name")
+			Case 75, K, "Key"
+				Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, " Key Listen..", "0000FF")
+				Now_KeyPress = WaitKey()
+				Now_KeyPress = Now_KeyPress + KEY_JIANRONG
+				Text = Text & "0" & "," & Now_KeyPress& "," & "K"&","&"0"&","&"DM|"&title&chr(13)&chr(10)
+			Case 70, F, "Find"
+				Pic_Num = IsNameUsedEx(File_Name & "_Pic", "P")
+				GetCursorPos x, y			//get the mouse position
+				//dm_ret = dm.GetWindowRect(HANDLE, window_x1, window_y1, window_x2, window_y2)
+				dmx1 = x - window_x1
+				dmy1 = y - window_y1
+			  Rem Picture_Capturing
+			  	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, " DM_Find_Model >>P:to determine (x2,y2)", "0000FF")
+				Now_KeyPress = WaitKey()
+				Now_KeyPress = Now_KeyPress + KEY_JIANRONG
+				If (Now_KeyPress = 80) Then 	//waiting you click "P"
+					Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, " DM_Find_Model >>P:Now to Capture One Pic", "0000FF")
+					GetCursorPos x, y			//get the mouse position
+					//dm_ret = dm.GetWindowRect(HANDLE, window_x1, window_y1, window_x2, window_y2)
+					dmx2 = x - window_x1
+					dmy2 = y - window_y1
+					Success = dm_CaptureEx(dmx1, dmy1, dmx2, dmy2, File_Name & "_Pic",0)
+					If (START = 1)Then 
+						Text = Text & Cstr(dmx1) & "," & Cstr(dmy1) & "," & "FindPicEx" & "," & File_Name&"_Pic"&Pic_Num&".bmp" & "," & "DM|"&title &","& Cstr(dmx2) & "," & Cstr(dmy2) &chr(13)&chr(10)
+					Else 
+						MsgBox "Capture Failde."
+					End If
+				ElseIf (Now_KeyPress = 71) Then  //waiting you click "G"
+					Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, " DM_Find_Model >>G:Now to Capture One Pic", "0000FF")
+					GetCursorPos x, y			//get the mouse position
+					//dm_ret = dm.GetWindowRect(HANDLE, window_x1, window_y1, window_x2, window_y2)
+					dmx2 = x - window_x1
+					dmy2 = y - window_y1
+					Success = dm_CaptureEx(dmx1, dmy1, dmx2, dmy2, File_Name & "_Pic",0)
+					If (START = 1)Then 
+						Text = Text & Cstr(dmx1) & "," & Cstr(dmy1) & "," & "FindPicEx" & "," & File_Name&"_Pic"&Pic_Num&".bmp" & "," & "DM|"&title &","& Cstr(dmx2) & "," & Cstr(dmy2) &chr(13)&chr(10)
+					Else 
+						MsgBox "Capture Failde."
+					End If
+				ElseIf (Now_KeyPress = 68) Then  //waiting you click "D",dynamic capture bmp
+					Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ Dynamic Pics Model>>Capturing... ]", "0000FF")
+					GetCursorPos x, y			//get the mouse position
+					//dm_ret = dm.GetWindowRect(HANDLE, window_x1, window_y1, window_x2, window_y2)
+					dmx2 = x - window_x1
+					dmy2 = y - window_y1
+					Pics_Name = dm_CaptureEx(dmx1, dmy1, dmx2, dmy2, File_Name & "_Pic","Dynamic")	
+					If (START = 1)Then 
+						Text = Text & Cstr(dmx1) & "," & Cstr(dmy1) & "," & "FindPicEx_Dynamic" & "," & File_Name&"_Pic"&Pic_Num&".bmp"& "," & "DM|"&title &","& Cstr(dmx2) & "," & Cstr(dmy2) &chr(13)&chr(10)
+					Else 
+						MsgBox "Capture Failde."
+					End If
+				ElseIf (Now_KeyPress = 65) Then  //waiting you click "A",FindPics capture bmp
+					GetCursorPos x, y			//F-A F-A...Q
+					//dm_ret = dm.GetWindowRect(HANDLE, window_x1, window_y1, window_x2, window_y2)
+					dmx2 = x - window_x1
+					dmy2 = y - window_y1
+					Success = dm_CaptureEx(dmx1, dmy1, dmx2, dmy2, File_Name & "_Pic"& Pic_Num,0)
+					Pics_Name = File_Name & "_Pic" & Pic_Num & ".bmp"
+					'定义OR图片个数
+					AD_Num = 0
+				  	Dim AD_Num,AD_Num_adjust //pics sum
+				  	Dim x1s, y1s, x2s, y2s
+				  	x1s = x1s &dmx1
+				  	y1s = y1s &dmy1
+				  	x2s = x2s &dmx2
+				  	y2s = y2s & dmy2
+				  Rem Picture_Capturing_AND_Model
+				  	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ OR Pics Model>>continue? F? Q?]", "0000FF")
+					Now_KeyPress = WaitKey()
+					Now_KeyPress = Now_KeyPress + KEY_JIANRONG
+					If (Now_KeyPress = 70) Then //F one more pic
+						GetCursorPos x, y			//get the mouse position
+						//dm_ret = dm.GetWindowRect(HANDLE, window_x1, window_y1, window_x2, window_y2)
+						dmx1 = x - window_x1
+						dmy1 = y - window_y1
+						x1s = x1s & "|" &dmx1
+						y1s = y1s & "|" &dmy1
+					  Rem Picture_Capturing_AND_Model_A
+					  	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ OR Pics Model>>Now wait for A ]", "0000FF")
+						Now_KeyPress = WaitKey()
+						Now_KeyPress = Now_KeyPress + KEY_JIANRONG
+						If (Now_KeyPress = 65) Then //A
+							GetCursorPos x, y			//get the mouse position
+							//dm_ret = dm.GetWindowRect(HANDLE, window_x1, window_y1, window_x2, window_y2)
+							dmx2 = x - window_x1
+							dmy2 = y - window_y1
+							x2s = x2s & "|" & dmx2
+							y2s = y2s & "|" &dmy2
+							If (AD_Num < 10) Then 
+								AD_Num_adjust = "0" & AD_Num
+							End If
+							Pics_Name = Pics_Name &"|"& File_Name & "_Pic" & Pic_Num & AD_Num_adjust&".bmp"
+							Success = dm_CaptureEx(dmx1, dmy1, dmx2, dmy2, File_Name & "_Pic"& Pic_Num,0)
+							AD_Num = AD_Num + 1
+							Goto Picture_Capturing_AND_Model
+						Else 
+							Goto Picture_Capturing_AND_Model_A
+						End If
+					ElseIf (Now_KeyPress = 81) Then//Q
+						If (START = 1) Then 
+							Text = Text & Cstr(x1s) & "," & Cstr(y1s) & "," & "FindPicEx_OR" & "," & Pics_Name& "," & "DM|"&title &","& Cstr(x2s) & "," & Cstr(y2s) &chr(13)&chr(10)
+							dmx1 = int(mySplit(x1s, "|", "F", 0))	'获取OR 第一张图片的坐标
+							dmy1 = int(mySplit(y1s, "|", "F", 0))
+							dmx2 = int(mySplit(x2s, "|", "F", 0))	'获取OR 第一张图片的坐标
+							dmy2 = int(mySplit(y2s, "|", "F", 0))
+							dmx = int((dmx1 + dmx2) / 2)		'取均值,数据类型一致化
+							dmy = int((dmy1 + dmy2) / 2)
+							Text = Text & Cstr(dmx) & "," & Cstr(dmy) & "," & "C" & "," & "100"&AD_Num& "," & "DM|"&title & chr(13) & chr(10)
+							If (AD_Num > 0) Then 	'if have one more OR Pics
+								For i = 1 To AD_Num
+									x_x1 = mySplit(x1s, "|", "B", i)
+									x_x2 = mySplit(x2s, "|", "B", i)
+									y_y1 = mySplit(y1s, "|", "B", i)
+									y_y2 = mySplit(y2s, "|", "B", i)
+									dmx1 = int(mySplit(x1s, "|", "F", i))	'获取OR 第一张图片的坐标
+									dmy1 = int(mySplit(y1s, "|", "F", i))
+									dmx2 = int(mySplit(x2s, "|", "F", i))	'获取OR 第一张图片的坐标
+									dmy2 = int(mySplit(y2s, "|", "F", i))
+									dmx = int((dmx1 + dmx2) / 2)		'取均值,数据类型一致化
+									dmy = int((dmy1 + dmy2) / 2)
+									P_Pics_Name = mySplit(Pics_Name, "|", "B", i)
+									Text = Text & Cstr(x_x1) & "," & Cstr(y_y1) & "," & "FindPicEx_OR" & "," & P_Pics_Name& "," & "DM|"&title &","& Cstr(x_x2) & "," & Cstr(y_y2) &chr(13)&chr(10)
+									Text = Text & Cstr(dmx) & "," & Cstr(dmy) & "," & "C" & "," & "100" &i& "," & "DM|"&title & chr(13) & chr(10)'some trip in timedelay
+								Next
+							End If
+							
+						Else 
+							MsgBox "Capture Failde."
+						End If
+						Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ More Pics Model>>Quit ]", "0000FF")
+						Delay 2000
+					Else 
+						Goto Picture_Capturing_AND_Model
+					End If	
+				Else 
+					Goto Picture_Capturing
+				End If
+				
+			Case Else
+				Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "[ Unkown key,Try another one... ]", "0000FF")
+		End Select
+	Wend
+	Goto Ending
+	
+Rem Mouse_Model
+'initial:
+	Dim Mouse_Code
+	Mouse_Code = ""
+	sTime1 = 0
+	sTime2 = 0
+	Last_Time = 0
+	Text = ""
+	Click_AND = 0
+	//MsgBox "mouse model"
+'core:
+	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "Click Model >>", "0000FF")
+	While Not_End
+	Rem ToClick
+		sTime1 = Plugin.Sys.GetTime()
+		//time caculating..
+		Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768,"Last Click="&Mouse_Code, "0000FF")
+		Now_Click = WaitClick()
+		sTime2 = Plugin.Sys.GetTime()
+		If (Last_Time <> 0) Then 
+			time_delay = sTime2 - Last_Time
+		Else 
+			time_delay = 10
+		End If
+		Last_Time = sTime2
+		//LeftClickDown..
+		If (Now_Click = 32769) Then 
+			Left_Click_Down = Plugin.Sys.GetTime()
+			Now_Click = WaitClick()
+			If (Now_Click = 32770) Then 
+				Left_Click_Up = Plugin.Sys.GetTime()
+				Left_Click_Time = Left_Click_Up - Left_Click_Down
+				If (time_delay > 200)and(Click_AND=0) Then 
+					Mouse_Code="C"
+					Goto Reaction
+				ElseIf (Click_AND = 1) Then
+					Mouse_Code="D"
+					Goto Reaction
+				End If
+			ElseIf (Now_Click = 32773) Then
+				Mouse_Code = "S"
+				Goto Reaction
+			End If
+		//RightClickDown..
+		ElseIf (Now_Click = 32773) Then
+			Right_Click_Down = Plugin.Sys.GetTime()
+			Now_Click = WaitClick()
+			If (Now_Click = 32774) Then 
+			//MessageBox "rightc"
+				Right_Click_Up = Plugin.Sys.GetTime()
+				Right_Click_Time = Right_Click_Up - Right_Click_Down
+				
+				Mouse_Code="R"
+				Goto Reaction
+				
+			ElseIf (Now_Click = 32770) Then
+				Mouse_Code = "E"
+				Goto Reaction
+			End If
+		End If
+		If (time_delay < 200) and (Now_click = 32770) Then 
+			//MsgBox "AND"
+			Click_AND = Click_AND + 1         //label DoubleClick
+			Goto ToClick
+		Else 
+			Goto ToClick
+		End If
+		
+
+	Rem Reaction	
+		Select Case Mouse_Code
+			Case "C", "Left_Click","R","Right_Click","D","Double_Clcik"
+				GetCursorPos x, y			//get the mouse position
+				Text = Text &Cstr(x) &"," &Cstr(y) &"," & Mouse_Code&"," & Cstr(time_delay) &chr(13)&chr(10)
+				//Msgbox "Updata!" & chr(13) & chr(10) & "Text=" & chr(13) & chr(10) & Text
+				Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "Click..>.>.>.>.>", "0000FF")
+			Case "S", "Save"
+				label = File_SaveEx(File_Name, Text,"New")
+				If label Then 
+					Msgbox "Save Success!Go end!"
+				Else 
+					Msgbox "Failed to Save!"
+				End If
+				Not_End = 0 //save and end.
+			Case E, "End"	//If you press "E",and end the loop.
+				Not_End = 0
+				Msgbox "Script Ending!"
+			Case Else
+				Msgbox "Useless Key!"&chr(13)&chr(10)&"Press C for click button"&chr(13)&chr(10)&"Press P for Post"&chr(13)&chr(10)&"Press E to end."
+				//Msgbox "You have pressed  " & chr(Now_KeyPress)&Now_KeyPress
+		End Select
+	Wend
+	Goto Ending
+		
+Rem Ending
+
+End Function
+
+/*
+---------------------------------------------- Set CONF ----------------------------------------------
+*/
+Function Set_CONF(File_Name)								'---------按键精灵未定义变量为全局变量！！！！！！
+'claim:											'---------经常因此发生未知BUG!!!!!!!!!!!!!!!!!!!
+	Dim Read_Text, Codes, URL
+'initial:
+	Text = ""
+'core:
+	URL = PATH & File_Name & "_Conf.txt"
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then 
+		Read_Text = File_Read(File_Name&"_Conf")
+		//MsgBox "Set_CONF:read ="&Read_Text
+		Codes = split(Read_Text, "@")
+		For i = 0 To UBound(Codes)
+			Text = split(Codes(i), "=") 
+			Select Case Text(0)
+				Case "Script_Name"
+					Script_Name = Text(1)
+				Case "LAST_POST_NUM"
+					LAST_POST_NUM = Text(1)
+				Case Else
+					LAST_POST_NUM = Text(1)
+			End Select
+		Next
+	Else 
+		Text="Script_Name=HeuteNacht"&Chr(13)&Chr(10)&"LAST_POST_NUM=0"
+		Call File_SaveEx(Script_Name&"_Conf", Text, "Rewrite")
+	End If
+'Set Dict_Path
+	URL = dm_Dict_PATH
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then 
+	Else 
+		MsgBox "create a dict"
+		f = Plugin.File.OpenFile(URL)
+		Plugin.File.CloseFile f
+	End If
+'return:
+Set_CONF = "CONF"
+End Function
+
+Function Rewrite_CONF(Script_Name)
+'claim:
+	Dim String_Data
+'initial:
+'core:
+	THIS_POST_NUM = 2	'Default =2
+	String_Data = "Script_Name=" & Script_Name & Chr(13) & Chr(10)
+	sum = LAST_POST_NUM + THIS_POST_NUM
+'-----------------------------------------------------
+	If (sum >CIRCUS_SIZE) Then 						'|##########
+		sum = 0										'|# Modify #
+	End If											'|##########
+'------------------------------------------------------
+	String_Data = String_Data & "LAST_POST_NUM=" & sum
+	//MsgBox "sum="&sum
+	Call File_SaveEx(Script_Name&"_Conf", String_Data, "Rewrite")
+'return:
+Rewrite_CONF = "REWRITE_CONF"
+End Function
+
+Function File_Read(File_Name)
+'claim:
+	Dim Text, Get_Text
+	Dim URL
+'initial:	
+	Get_Text = ""
+	Text = "T"
+'core:	
+	URL = PATH & File_Name & ".txt"
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then 
+		f = Plugin.File.OpenFile(URL)
+		Text = Plugin.File.ReadLine(f)
+		Get_Text = Text
+		While Text<>""
+			Text = Plugin.File.ReadLine(f)
+			If (Text <> chr(13))and(Text<>chr(10))and(Text<>"") Then 
+				Get_Text = Get_Text & "@" & Text
+			End If
+		Wend
+		Plugin.File.CloseFile f
+	End If	
+'return:
+	File_Read = Get_Text
+End Function
+
+Function What_Key_Press()
+	Dim Now_KeyPress
+	Msgbox "Press Any Key!"&chr(13)&chr(10)&"回车实例"
+	Now_KeyPress = WaitKey()
+	//Now_KeyPress = Now_KeyPress + KEY_JIANRONG
+	If Now_KeyPress Then 
+		Msgbox "You have pressed " & Now_KeyPress & chr(Now_KeyPress)//chr()ACSII转义函数
+	End If
+End Function
+
+Function What_Click()
+'claim:
+	Dim sTime1, sTime2
+	Dim Time_Delay
+'initial:
+'core:
+	Msgbox "Please Click!"
+	Now_Click = WaitClick()
+	sTime1 = Plugin.Sys.GetTime()
+	If Now_Click Then 
+		Now_Click1 = WaitClick()
+		sTime2 = Plugin.Sys.GetTime()
+		Time_Delay = sTime2 - sTime1
+		Msgbox "You have Clicked " & Now_Click &"and"&Now_Click1&"with"&Time_Delay&"Delay"
+	End If
+End Function
+
+//获取目录下：文件名 complete
+Function File_SaveEx(File_Name, String_Data, Model)
+'claim;
+	Dim label
+	Dim Num
+'initial:
+	label=0	//when write failed return 0,else return 1
+	//Msgbox "start open.."&URL
+	
+	Select Case Model
+		Case 0, "0", "Default"
+			Goto File_SaveEx_Default_Model
+		Case "New", "new"
+			Goto File_SaveEx_New_Model
+		Case "Create", "create"
+			Goto File_SaveEx_Create_Model
+		Case "Rewrite", "rewrite"
+			Goto File_SaveEx_Rewrite_Model
+	End Select
+'Model:Default
+Rem File_SaveEx_Default_Model
+	Num = IsNameUsedEx(File_Name,"TXT")
+	URL = PATH & File_Name & Num &".txt"
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then
+		f = Plugin.File.OpenFile(URL)
+		Call Plugin.File.WriteFile(f,String_Data)
+		Plugin.File.CloseFile f
+		MsgBox "HAVE SAVE IN OLD FILE:"&URL
+		label = 1
+	Else 
+		f = Plugin.File.OpenFile(URL)
+		Call Plugin.File.WriteFile(f,String_Data)
+		Plugin.File.CloseFile f
+		MsgBox "HAVE SAVE IN NEW FILE:"&URL
+		label = 1
+	End If
+	Goto File_SaveEx_Return
+'Model:New	
+Rem File_SaveEx_New_Model	
+	Num = IsNameUsedEx(File_Name,"TXT")
+	URL = PATH & File_Name & Num &".txt"
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then
+		MessageBox "Tips:You Func IsNameUsedEx is Go Wrong."
+	Else 
+		f = Plugin.File.OpenFile(URL)
+		Call Plugin.File.WriteFile(f,String_Data)
+		Plugin.File.CloseFile f
+		MsgBox "HAVE SAVE IN:"&URL
+		label = 1
+	End If
+	Goto File_SaveEx_Return
+'Model:Create
+Rem File_SaveEx_Create_Model	
+	Num = IsNameUsedEx(File_Name,"TXT")
+	URL = PATH & File_Name & Num &".txt"
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then
+		MessageBox "FILE IS EXIST."
+		label = 1
+	Else 
+		f = Plugin.File.OpenFile(URL)
+		Call Plugin.File.WriteFile(f,String_Data)
+		Plugin.File.CloseFile f
+		MsgBox "HAVE CREATED:"&URL
+		label = 1
+	End If
+	Goto File_SaveEx_Return
+'Model:Rewrite
+Rem File_SaveEx_Rewrite_Model
+	URL = PATH & File_Name & ".txt"
+	f = Plugin.File.OpenFile(URL)
+	Call Plugin.File.WriteFile(f,String_Data)
+	Plugin.File.CloseFile f
+	MsgBox "Script Runing Data is Save in Conf"
+	Goto File_SaveEx_Return	
+'return:
+Rem File_SaveEx_Return
+	File_SaveEx = label
+End Function
+
+/*
+------------------------------------------------------------------------------------------------------------------------
+		        以下为使用大漠插件时，必须创建对象 
+		        大漠插件，每个系统使用之前必须注册： 
+		        
+		        	比如dm.dll放在c:\test目录
+				那么开始->运行->cmd          ！！！！注意cmd需要以管理员权限运行，否则会失败！！！
+				在命令提示符下，输入cd c:\test
+				再输入 regsvr32 dm.dll 即可，这样会提示插件已经注册到系统中.
+
+------------------------------------------------------------------------------------------------------------------------
+*/
+Function dm_Initial(title)
+set dm = createobject("dm.dmsoft")'创建大漠对象
+PutAttachment dm_PATH,"*.txt" '设置:字典绝对路径
+dm_ret = dm.SetPath(dm_PATH & "\Ocr")'设置:默认绝对路径
+dm_ret = dm.SetDict(0, "dm_soft.txt")'设置:字典位置
+
+
+Hwnd = dm.FindWindow("", title)
+If (Hwnd = 0) Then 
+	Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "dm.dll regsvr32 failed", "0000FF")
+	Delay 2000
+	Hwnd = Plugin.window.Find(0, title)  //然后利用按键的锁定窗口找到句柄	
+End If
+
+//MsgBox "You Find the Handle is:" & Hwnd
+    //Call Plugin.Window.SetClientSize(h1, 540, 300)//设置窗口大小
+    Call Plugin.window.Move(Hwnd, 0, 0)
+    dm.DmGuard 1, "np"   //大漠的绑定模式
+    dm_ret = dm.BindWindow(Hwnd, "dx2", "windows", "windows", 0)
+    
+ /*
+ -----------------------------------------------------------------------------------------------------
+ 			以上为使用大漠插件必经途径： 
+ 			1.查找句柄
+ 			2.绑定大漠插件对象
+ -----------------------------------------------------------------------------------------------------
+ */
+ If (Hwnd <> 0) Then 
+ 	dm_Initial = 1
+ Else 
+ 	dm_Initial = 0
+ End If
+End Function
+
+Function dm_Find_OCR()
+	zhu = dm.Ocr(92,643,121,669,"d3cfb1-111111|aaa48b-111111|8d866f-111111",1.0)
+	zhan = dm.Ocr(458, 643, 483, 670, "d3cfb1-111111|aaa48b-111111|8d866f-111111", 1.0)
+	dm_Find_OCR=zhu &zhan
+End Function
+/*
+--------------------------------capture bmb save---------------------------------------------------
+*/
+Function dm_CaptureEx(x1, y1, x2, y2, File_Name, Model)
+'claim:
+	Dim Pic_Num, Pic_Name,Pics_Name, CreateFolder_URL
+'initial:part independence!
+
+'Trans:
+	Select Case Model
+		Case 0, "0", "Default"
+			Goto dm_CaptureEx_Default_Model
+		Case "D", "d", "Dynamic", "dynamic"
+			Goto dm_CaptureEx_Dynamic_Model
+	End Select
+	
+'Model:0
+Rem	dm_CaptureEx_Default_Model
+	dm_ret = dm.SetPath(dm_PATH & "Pic")'设置:图片绝对路径
+	Pic_Num = IsNameUsedEx(File_Name, "P")
+	Pic_Name = File_Name & Pic_Num & ".bmp"
+	dm_ret_capture = dm.Capture(x1, y1, x2, y2, Pic_Name)
+	dm_ret = dm.SetPath(dm_PATH & "Ocr")'设置:默认绝对路径	
+	Goto dm_CaptureEx_Return
+'Model:D
+Rem dm_CaptureEx_Dynamic_Model
+	dm_ret = dm.SetPath(dm_PATH & "Pic")'设置:图片绝对路径
+	Pic_Num = IsNameUsedEx(File_Name, "P")
+	Pic_Name = File_Name & Pic_Num & ".bmp"
+	dm_ret_capture = dm.Capture(x1, y1, x2, y2, Pic_Name) 			'First, Get one pic in outside:AS Label
+	CreateFolder_URL = dm_PATH & "Pic" & "\" & File_Name & Pic_Num	'Then Create a Folder with same name
+	dm.CreateFolder CreateFolder_URL
+	dm_ret = dm.SetPath(CreateFolder_URL)'设置:图片绝对路径为新建的文件夹内
+	Pics_Name=""
+	For i = 10 To 30
+		Pic_Name = File_Name & Pic_Num &"_D" & i & ".bmp"
+		If (i < 20) Then 
+			Pics_Name = Pics_Name + Pic_Name & "|"
+		Else 
+			Pics_Name=Pics_Name+Pic_Name
+		End If
+		dm_ret_capture = dm.Capture(x1, y1, x2, y2, Pic_Name)
+		Delay 20
+	Next
+	dm_ret = dm.SetPath(dm_PATH & "Ocr")'设置:默认绝对路径
+	Goto dm_CaptureEx_Return
+
+'return:
+Rem dm_CaptureEx_Return
+	dm_CaptureEx = Pics_Name
+End Function
+/*
+--------------------------------  IsNameUsedEx .txt Files  ------------------------------------------
+*/
+Function IsNameUsedEx(File_Name,Model)
+'claim:
+	Dim URL
+	Dim Num
+	Dim i, j
+'initial:	
+	Num=""
+	i = 0
+'Core or Trans:	
+Rem Finding
+	Select Case Model
+		Case 0, "0", "Default", "TXT"
+			URL = PATH & File_Name & Num & ".txt"
+		Case "P", "Pic", "pic", "Picture"
+			URL = PATH & "damo\Pic\" & File_Name & Num & ".bmp"
+		Case Else
+			MessageBox "Err:Not Design Model!"&chr(13)&chr(10)&"Tips:You Should add this to IsNameUsedEx Func."
+			Goto IsNameUsedEx_Return
+	End Select
+	FileExist = Plugin.File.IsFileExist(URL)
+	If FileExist Then 
+		j = int(i / 10)
+		Num=Cstr(j)&Cstr(i Mod 10)
+		i = i + 1
+		Goto Finding
+	Else 
+		Goto IsNameUsedEx_Return
+	End If	
+'return:	
+Rem IsNameUsedEx_Return
+	IsNameUsedEx = Num
+End Function
+
+Function dm_InitialEx(title,Model)
+'claim:
+	Dim Hwnd
+'initial:
+	set dm = createobject("dm.dmsoft")'创建大漠对象
+	PutAttachment dm_PATH,"*.txt" '设置:字典绝对路径
+	dm_ret = dm.SetPath(dm_PATH & "Ocr")'设置:默认绝对路径
+	dm_ret = dm.SetDict(0, "dm_soft.txt")'设置:字典位置
+	Hwnd = 0
+'core:
+	Select Case Model
+		Case 0, "0", "M", "m", "Mouse", "Mouse_Model", "MOUSE","mouse"
+			Goto Mouse_Model
+		Case 1, "1", "Name", "name","NAME"
+			Goto Name_Model
+	End Select
+
+Rem Mouse_Model
+	Hwnd = dm.GetMousePointWindow()
+	If (Hwnd <> 0) Then 
+		Goto dm_Binding
+	Else 
+		MsgBox "Mouse_Model no work!"
+	End If
+	Goto dm_Initial_Ending
+	
+Rem Name_Model
+	Hwnd = dm.FindWindow("", title)
+	//MsgBox "..."
+	If (Hwnd = 0) Then 
+		Call Plugin.Msg.ShowScrTXT(0, 0, 1024, 768, "dm.dll regsvr32 failed", "0000FF")
+		Hwnd = Plugin.window.Find(0, title)  //然后利用按键的锁定窗口找到句柄
+		Goto Name_Model
+	End If
+	If (Hwnd <> 0) Then 
+		Goto dm_Binding
+	Else 
+	'-----------------------------------------------------------------------------------------########
+		Goto Name_Model																		'|#Modify#
+	'-----------------------------------------------------------------------------------------########
+	End If
+	Goto dm_Initial_Ending
+
+Rem dm_Binding
+   ' Call Plugin.window.Move(Hwnd, 0, 0)
+    dm.DmGuard 1, "np"   //大漠的绑定模式
+    dm_ret = dm.BindWindow(Hwnd, "dx2", "windows", "windows", 0)
+    Goto dm_Initial_Ending
+ /*
+ -----------------------------------------------------------------------------------------------------
+ 			以上为使用大漠插件必经途径： 
+ 			1.查找句柄
+ 			2.绑定大漠插件对象
+ -----------------------------------------------------------------------------------------------------
+ */
+ 
+ 'return:
+ Rem dm_Initial_Ending
+ If (Hwnd <> 0) Then 
+ 	START=1 'now dm.dll is running
+ 	//MsgBox "dm bind successful"
+ 	HANDLE = Hwnd
+ 	//MsgBox "HANDLE=" & HANDLE
+ 	title = dm.GetWindowTitle(Hwnd)
+ 	dm_InitialEx = title
+ Else 
+ 	MsgBox "dm bind Failed."
+ 	dm_InitialEx = 0
+ End If
+End Function
+
+Function mySplit(String_Data, str1, Model, Num)	'mySplit("a|b|c|d","|","B",1) 返回倒三角字串第一位		
+	Dim myArray									'eg."B"a|b|c|d    则返回:b|c|d   第二位c|d  第三位 d  超出返回 0
+	Dim Err										'eg."F"正三角模式   则返回:a  a|b  a|b|c  a|b|c|d  表示0-3位 Error:超出返回 0
+	Dim Len, i									'eg."G"取点模式 返回指定点的值
+	Dim Text
+'initial:
+	Text = ""
+	Err = 0
+	myArray = split(String_Data, str1)
+	Len = UBound(myArray)
+'Trans:
+	Select Case Model
+		Case "b", "B", "back", "Back"
+			Goto mySplit_Back_Model
+		Case "f", "F", "first", "First"
+			Goto mySplit_First_Model
+		Case "g", "G", "get", "Get"
+			Goto mySplit_Get_Model
+		Case Else
+			Goto mySplit_Return
+	End Select
+'Model:Back
+Rem mySplit_Back_Model
+	If (Num > Len) Then 
+		Err = 0
+		Goto mySplit_Return
+	Else 
+		
+		If (Num > 0) Then 
+			If (Num < Len) Then 
+				Text = myArray(Num)
+				For i = Num+1 To Len
+					Text=Text&"|" &myArray(i)
+				Next
+				Err = Text
+			Else 
+				Err = myArray(Len)
+			End If
+		Else 
+			Err = String_Data
+		End If
+	End If
+	Goto mySplit_Return
+'Model:First
+Rem mySplit_First_Model
+	If (Num > Len) Then 
+		Err = 0
+		Goto mySplit_Return
+	Else 
+		If (Num > 0) Then 
+			If (Num < Len) Then 
+				Text = myArray(0)
+				For i = 1 To Num
+					Text = Text & "|" & myArray(i)	
+				Next
+				Err = Text
+			Else 
+				Err = String_Data
+			End If
+		Else 
+			Err = myArray(0)
+		End If
+		
+	End If
+	Goto mySplit_Return
+'Model:Get
+Rem mySplit_Get_Model
+	If (Num > Len) Then 
+		Err = 0
+		Goto mySplit_Return
+	Else 
+		Err = myArray(Num)	
+	End If
+	Goto mySplit_Return
+'return:
+Rem mySplit_Return
+	mySplit = Err
+End Function
